@@ -15,7 +15,9 @@ jobs:
     steps:
     - uses: stCarolas/setup-maven@v4.3
     - name: Maven Build
-      run: mvn package
+      run: |
+        cd ..
+        mvn package
     - uses: actions/checkout@v3
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag java-spring-crud-mvc-sample:$(date +%s)
