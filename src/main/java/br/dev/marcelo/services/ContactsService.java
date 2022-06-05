@@ -41,12 +41,12 @@ public class ContactsService implements Contacts {
       return contactViewDto;
     };
 
-    private final BiFunction<String, EmailsRepository, List<String>> emailsFromDb = (contactId, emailsRepository) ->
-            emailsRepository.findByContactId(contactId).stream()
+    private final BiFunction<String, EmailsRepository, List<String>> emailsFromDb = (contactId, repositoryMails) ->
+            repositoryMails.findByContactId(contactId).stream()
                     .map(Email::getAddress).collect(Collectors.toList());
 
-    private final BiFunction<Contact, EmailsRepository, ContactViewDto> viewWithMailsDb = (contact, emailsRepository) ->
-            viewWithMailsList.apply(contact, emailsFromDb.apply(contact.getId(), emailsRepository));
+    private final BiFunction<Contact, EmailsRepository, ContactViewDto> viewWithMailsDb = (contact, repositoryMails) ->
+            viewWithMailsList.apply(contact, emailsFromDb.apply(contact.getId(), repositoryMails));
 
     private ContactViewDto viewFromContact(Contact contact) {
         return viewWithMailsDb.apply(contact, emailsRepository);
