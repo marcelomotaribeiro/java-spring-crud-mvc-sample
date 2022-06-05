@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.Assert;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,12 +16,21 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @SpringBootTest
 class JavaSpringCrudMvcSampleApplicationTests {
 
 	@Autowired
 	ContactsController contactsController;
 
+	@Test
+	void applicationClassTest() {
+		String[] params = new String[]{};
+		JavaSpringCrudMvcSampleApplication.main(params);
+		assertEquals(0, params.length);
+	}
 
 	@Test
 	void createContact() {
@@ -31,7 +39,7 @@ class JavaSpringCrudMvcSampleApplicationTests {
 		final List<String> emails = new ArrayList<>();
 		emails.add(UUID.randomUUID().toString().concat("@test.com"));
 		contact.setEmails(emails);
-		Assert.isTrue(contactsController.post(contact).getStatusCode().equals(HttpStatus.CREATED),
+		assertEquals(HttpStatus.CREATED, contactsController.post(contact).getStatusCode(),
 				"Create Marcelo contact");
 	}
 
@@ -43,7 +51,7 @@ class JavaSpringCrudMvcSampleApplicationTests {
 		emails.add(UUID.randomUUID().toString().concat("@test.com"));
 		emails.add("invalid");
 		contact.setEmails(emails);
-		Assert.isTrue(contactsController.post(contact).getStatusCode().equals(HttpStatus.BAD_REQUEST),
+		assertEquals(HttpStatus.BAD_REQUEST, contactsController.post(contact).getStatusCode(),
 			"Invalid mail on post");
 	}
 
@@ -59,12 +67,12 @@ class JavaSpringCrudMvcSampleApplicationTests {
 		final ContactUpdateDto contactB = new ContactViewDto();
 		contactB.setName(UUID.randomUUID().toString());
 		contactB.setEmails(emailsA);
-		Assert.isTrue(contactsController.post(contactB).getStatusCode().equals(HttpStatus.CONFLICT),
+		assertEquals(HttpStatus.CONFLICT, contactsController.post(contactB).getStatusCode(),
 				"Email already in use on post");
 		List<String> emailsB = new ArrayList<>();
 		addEmail.accept(emailsB);
 		contactB.setEmails(emailsB);
-		Assert.isTrue(contactsController.post(contactB).getStatusCode().equals(HttpStatus.CREATED),
+		assertEquals(HttpStatus.CREATED, contactsController.post(contactB).getStatusCode(),
 				"Create contact Marcos");
 	}
 
@@ -77,10 +85,11 @@ class JavaSpringCrudMvcSampleApplicationTests {
 		contactUpdate.setEmails(emails);
 		final ResponseEntity<ContactViewDto> contactResponse = contactsController.post(contactUpdate);
 		final ContactViewDto contactView = contactResponse.getBody();
+		contactUpdate.getEmails().clear();
 		contactUpdate.getEmails().add("marcelomotaribeiro@yahoo.com.br");
 		assert contactView != null;
-		Assert.isTrue(contactsController.put(contactView.getId(), contactUpdate).getStatusCode().equals(
-				HttpStatus.OK), "Update Marcelo contact");
+		assertEquals(HttpStatus.OK, contactsController.put(contactView.getId(), contactUpdate).getStatusCode(),
+				"Update Marcelo contact");
 	}
 
 	@Test
@@ -94,8 +103,8 @@ class JavaSpringCrudMvcSampleApplicationTests {
 		final ContactViewDto contactView = contactResponse.getBody();
 		contactUpdate.getEmails().add("invalid");
 		assert contactView != null;
-		Assert.isTrue(contactsController.put(contactView.getId(), contactUpdate).getStatusCode()
-						.equals(HttpStatus.BAD_REQUEST), "Invalid mail on put");
+		assertEquals(HttpStatus.BAD_REQUEST, contactsController.put(contactView.getId(), contactUpdate).getStatusCode(),
+				"Invalid mail on put");
 	}
 
 	@Test
@@ -115,11 +124,11 @@ class JavaSpringCrudMvcSampleApplicationTests {
 		final ContactViewDto contactViewB = contactResponseB.getBody();
 		contactUpdateB.getEmails().add(emailsA.get(0));
 		assert contactViewB != null;
-		Assert.isTrue(contactsController.put(contactViewB.getId(), contactUpdateB)
-						.getStatusCode().equals(HttpStatus.CONFLICT), "Email already in use on put");
+		assertEquals(HttpStatus.CONFLICT, contactsController.put(contactViewB.getId(), contactUpdateB).getStatusCode(),
+				"Email already in use on put");
 		contactUpdateB.getEmails().remove(emailsA.get(0));
-		Assert.isTrue(contactsController.put(contactViewB.getId(), contactUpdateB)
-						.getStatusCode().equals(HttpStatus.OK), "Update contact Cris");
+		assertEquals(HttpStatus.OK, contactsController.put(contactViewB.getId(), contactUpdateB).getStatusCode(),
+				"Update contact Cris");
 	}
 
 	@Test
@@ -130,12 +139,12 @@ class JavaSpringCrudMvcSampleApplicationTests {
 		emails.add(UUID.randomUUID().toString().concat("@test.com"));
 		contactUpdate.setEmails(emails);
 		contactsController.post(contactUpdate);
-		Assert.isTrue(contactsController.put(UUID.randomUUID().toString(), contactUpdate)
-				.getStatusCode().equals(HttpStatus.CONFLICT), "Update contact with invalid id - Conflict");
-		emails.clear();;
+		assertEquals(HttpStatus.CONFLICT, contactsController.put(UUID.randomUUID().toString(), contactUpdate)
+				.getStatusCode(), "Update contact with invalid id - Conflict");
+		emails.clear();
 		emails.add(UUID.randomUUID().toString().concat("@test.com"));
-		Assert.isTrue(contactsController.put(UUID.randomUUID().toString(), contactUpdate)
-				.getStatusCode().equals(HttpStatus.NOT_FOUND), "Update contact with invalid id - Not found");
+		assertEquals(HttpStatus.NOT_FOUND, contactsController.put(UUID.randomUUID().toString(), contactUpdate)
+				.getStatusCode(), "Update contact with invalid id - Not found");
 	}
 
 	@Test
@@ -152,14 +161,14 @@ class JavaSpringCrudMvcSampleApplicationTests {
 		contactUpdateB.setEmails(emailsA);
 		final ContactViewDto contactViewB = contactResponseA.getBody();
 		final ResponseEntity<List<ContactViewDto>> allContacts = contactsController.get();
-		Assert.isTrue(allContacts.getStatusCode().equals(HttpStatus.OK), "All contacts");
+		assertEquals(HttpStatus.OK, allContacts.getStatusCode(), "All contacts");
 		final List<String> responseIds = Objects.requireNonNull(allContacts.getBody()).stream().map(ContactViewDto::getId)
 							.collect(Collectors.toList());
 		assert contactViewA != null;
-		Assert.isTrue(responseIds.contains(contactViewA.getId()),
+		assertTrue(responseIds.contains(contactViewA.getId()),
 				"All contacts contains Marcelo id");
 		assert contactViewB != null;
-		Assert.isTrue(responseIds.contains(contactViewB.getId()),
+		assertTrue(responseIds.contains(contactViewB.getId()),
 				"All contacts contains Stephanie id");
 	}
 
@@ -177,13 +186,13 @@ class JavaSpringCrudMvcSampleApplicationTests {
 				contactsController.get(contactViewA.getId());
 		final ContactViewDto contactViewB = contactResponseB.getBody();
 		assert contactViewB != null;
-		Assert.isTrue(contactViewA.getId().equals(contactViewB.getId()), "Get contact by Id");
+		assertEquals(contactViewB.getId(), contactViewA.getId(), "Get contact by Id");
 	}
 
 	@Test
 	void getContactByIdWithInvalidId() {
-		Assert.isTrue(contactsController.get(UUID.randomUUID().toString())
-				.getStatusCode().equals(HttpStatus.NOT_FOUND), "Get contact by id with invalid id");
+		assertEquals(HttpStatus.NOT_FOUND, contactsController.get(UUID.randomUUID().toString())
+				.getStatusCode(), "Get contact by id with invalid id");
 	}
 
 	@Test
@@ -200,13 +209,13 @@ class JavaSpringCrudMvcSampleApplicationTests {
 		final ResponseEntity<List<ContactViewDto>> allContacts = contactsController.get();
 		final List<String> responseIds = Objects.requireNonNull(allContacts.getBody()).stream().map(ContactViewDto::getId)
 							.collect(Collectors.toList());
-		Assert.isTrue(!responseIds.contains(contactViewA.getId()), "Delete contact");
+		assertTrue(!responseIds.contains(contactViewA.getId()), "Delete contact");
 	}
 
 	@Test
 	void deleteContactWithInvalidId() {
-		Assert.isTrue(contactsController.delete(
-				UUID.randomUUID().toString()).getStatusCode().equals(HttpStatus.NOT_FOUND),
+		assertEquals(HttpStatus.NOT_FOUND, contactsController.delete(
+				UUID.randomUUID().toString()).getStatusCode(),
 				"Delete contact with invalid id");
 	}
 
