@@ -19,6 +19,8 @@ jobs:
       run:  |
         mvn -B package --file pom.xml
         ls -l
+        cd target
+        ls -l
     - uses: actions/checkout@v3
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag java-spring-crud-mvc-sample:$(date +%s)
