@@ -17,8 +17,10 @@ jobs:
     - uses: stCarolas/setup-maven@v4.3
     - uses: actions/checkout@v3
     - name: Maven / Docker - build and push
+      env:
+        TAG: $(date +%s) 
       run:  |
         mvn -B package --file pom.xml
         docker login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASSWORD}} 
-        docker build . --file Dockerfile --tag ${{secrets.DOCKER_USER}}/java-spring-crud-mvc-sample:$(date +%s)
-        docker push ${{secrets.DOCKER_USER}}/java-spring-crud-mvc-sample
+        docker build . --file Dockerfile --tag ${{secrets.DOCKER_USER}}/java-spring-crud-mvc-sample:$TAG
+        docker push ${{secrets.DOCKER_USER}}/java-spring-crud-mvc-sample:$TAG
