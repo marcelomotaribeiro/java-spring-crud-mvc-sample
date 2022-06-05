@@ -6,6 +6,7 @@ A implementação atende à seguinte estória de usuário:
 - **Como** usuário
 - **Quero** manter um cadastro de endereços de e-mails dos meus contatos por meio de uma API
 - **Para** listá-los quando eu precisar usá-los
+
 **Critérios de aceite**
 - Um mesmo endereço de e-mail não pode pertencer a dois contatos
 - Um identificador único deve ser gerado para cada registro de contato
