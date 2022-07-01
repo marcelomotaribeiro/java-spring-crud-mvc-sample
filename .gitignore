@@ -33,5 +33,6 @@ build/
 .vscode/
 
 ### Local environment ###
+.mvn/
 sonar.bat
 sonar.sh
