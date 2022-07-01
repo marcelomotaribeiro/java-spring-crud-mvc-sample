@@ -6,18 +6,17 @@ import br.dev.marcelo.entities.Email;
 import br.dev.marcelo.exceptions.ContactNotFoundException;
 import br.dev.marcelo.exceptions.EmailAlreadyInUseException;
 import br.dev.marcelo.exceptions.InvalidEmailException;
-import br.dev.marcelo.models.ContactUpdateDto;
-import br.dev.marcelo.models.ContactViewDto;
+import br.dev.marcelo.models.ContactDto;
 import br.dev.marcelo.repositories.ContactsRepository;
 import br.dev.marcelo.repositories.EmailsRepository;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,122 +27,112 @@ public class ContactsService implements Contacts {
 
     private final EmailsRepository emailsRepository;
 
+    private final EmailValidator emailValidator;
+
     public ContactsService(ContactsRepository contactsRepository, EmailsRepository emailsRepository) {
         this.contactsRepository = contactsRepository;
         this.emailsRepository = emailsRepository;
+        this.emailValidator = EmailValidator.getInstance();
     }
 
-    private final BiFunction<Contact, List<String>, ContactViewDto> viewWithMailsList = (contact, emails) -> {
-      final ContactViewDto contactViewDto = new ContactViewDto();
-      contactViewDto.setId(contact.getId());
-      contactViewDto.setName(contact.getName());
-      contactViewDto.setEmails(emails);
-      return contactViewDto;
-    };
-
-    private final BiFunction<String, EmailsRepository, List<String>> emailsFromDb = (contactId, repositoryMails) ->
-            repositoryMails.findByContactId(contactId).stream()
-                    .map(Email::getAddress).collect(Collectors.toList());
-
-    private final BiFunction<Contact, EmailsRepository, ContactViewDto> viewWithMailsDb = (contact, repositoryMails) ->
-            viewWithMailsList.apply(contact, emailsFromDb.apply(contact.getId(), repositoryMails));
-
-    private ContactViewDto viewFromContact(Contact contact) {
-        return viewWithMailsDb.apply(contact, emailsRepository);
+    @Override
+    public ContactDto post(ContactDto contactDto) {
+        emailValidate(contactDto);
+        emailUsedCheck(contactDto);
+        final var contact =  new Contact();
+        contact.setName(contactDto.getName());
+        contactsRepository.save(contact);
+        for (var emailAddress : contactDto.getEmails()) {
+            emailAdd(contact.getId(), emailAddress);
+        }
+        return getContactResponse(contactDto, contact);
     }
 
-    private final Predicate<ContactUpdateDto> emailValidator = contactUpdateDto ->
-            contactUpdateDto.getEmails().stream().allMatch(address -> EmailValidator.getInstance().isValid(address));
+    private void emailAdd(String contact, String emailAddress) {
+        final var email = new Email();
+        email.setContactId(contact);
+        email.setAddress(emailAddress);
+        emailsRepository.save(email);
+    }
 
-    private boolean contactValidate(String id, ContactUpdateDto contactUpdateDto) {
-        if (id == null) {
-            return contactUpdateDto.getEmails().stream()
-                    .allMatch(address -> emailsRepository.findByAddress(address).isEmpty());
-        } else {
-            for (String email : contactUpdateDto.getEmails()) {
-                final List<String> ids = emailsRepository.findByAddress(email).stream()
-                        .map(Email::getContactId).distinct().collect(Collectors.toList());
-                if (!ids.isEmpty() && !ids.get(0).equals(id)) {
-                    return false;
+    private void emailUsedCheck(ContactDto contactDto) {
+        for (var email : contactDto.getEmails()) {
+            emailUsedCheck(email);
+        }
+    }
+
+    private void emailUsedCheck(String email) {
+        if (!emailsRepository.findByAddress(email).isEmpty()) {
+            throw new EmailAlreadyInUseException(email);
+        }
+    }
+
+    private void emailValidate(ContactDto contactDto) {
+        for (var email : contactDto.getEmails()) {
+            if (!emailValidator.isValid(email)) {
+                throw new InvalidEmailException(email);
+            }
+        }
+    }
+
+    @Override
+    public ContactDto put(String id, ContactDto contactDto) {
+        emailValidate(contactDto);
+        final Optional<Contact> contactOptional = contactsRepository.findById(id);
+        if (contactOptional.isPresent()) {
+            final var contact = contactOptional.get();
+            contact.setName(contactDto.getName());
+            final List<Email> emails = emailsRepository.findByContactId(id);
+            for (var emailAddress : contactDto.getEmails()) {
+                if (emails.stream().noneMatch(e -> e.getAddress().equals(emailAddress))) {
+                    emailUsedCheck(emailAddress);
+                    emailAdd(id, emailAddress);
                 }
             }
-            return true;
-        }
-    }
-
-    private ContactViewDto getContactViewDto(ContactUpdateDto contactUpdateDto) {
-        final Contact contact = new Contact();
-        contact.setId(UUID.randomUUID().toString());
-        contact.setName(contactUpdateDto.getName());
-        contactsRepository.save(contact);
-        contactUpdateDto.getEmails().forEach(address -> {
-            final Email email = new Email();
-            email.setId(UUID.randomUUID().toString());
-            email.setContactId(contact.getId());
-            email.setAddress(address);
-            emailsRepository.save(email);
-        });
-        return viewWithMailsList.apply(contact, contactUpdateDto.getEmails());
-    }
-
-    private ContactViewDto getContactViewDto(String id, ContactUpdateDto contactUpdateDto, Contact contact) {
-        contact.setName(contactUpdateDto.getName());
-        final List<Email> emails = emailsRepository.findByContactId(id);
-        contactUpdateDto.getEmails().stream().filter(address -> emails.stream().noneMatch(
-                email -> email.getAddress().equals(address))).forEach(address -> {
-            final Email email = new Email();
-            email.setId(UUID.randomUUID().toString());
-            email.setContactId(id);
-            email.setAddress(address);
-            emailsRepository.save(email);
-        });
-        emails.stream().filter(email -> !contactUpdateDto.getEmails().contains(email.getAddress()))
-                .forEach(emailsRepository::delete);
-        return viewWithMailsList.apply(contact, contactUpdateDto.getEmails());
-    }
-
-    @Override
-    public ContactViewDto post(ContactUpdateDto contactUpdateDto) {
-        if (emailValidator.test(contactUpdateDto)) {
-            if (contactValidate(null, contactUpdateDto)) {
-                return getContactViewDto(contactUpdateDto);
-            } else {
-                throw new EmailAlreadyInUseException();
+            for (var email : emails) {
+                if (contactDto.getEmails().stream().noneMatch(e -> e.equals(email.getAddress()))) {
+                    emailsRepository.delete(email);
+                }
             }
+            return getContactResponse(contactDto, contact);
         } else {
-            throw new InvalidEmailException();
+            throw new ContactNotFoundException();
         }
     }
 
-    @Override
-    public ContactViewDto put(String id, ContactUpdateDto contactUpdateDto) {
-        if (emailValidator.test(contactUpdateDto)) {
-            if (contactValidate(id, contactUpdateDto)) {
-                return contactsRepository.findById(id).map(
-                        contact -> getContactViewDto(id, contactUpdateDto, contact))
-                            .orElseThrow(ContactNotFoundException::new);
-            } else {
-                throw new EmailAlreadyInUseException();
-            }
-        } else {
-            throw new InvalidEmailException();
-        }
+    private ContactDto getContactResponse(ContactDto contactDto, Contact contact) {
+        contactDto.setId(contact.getId());
+        return contactDto;
     }
 
     @Override
-    public List<ContactViewDto> get() {
-        return contactsRepository.findAll().stream().map(this::viewFromContact).collect(Collectors.toList());
+    public List<ContactDto> get() {
+        return contactsRepository.findAll().stream().map(getContactDto()).collect(Collectors.toList());
     }
 
     @Override
-    public ContactViewDto get(String id) {
-        return contactsRepository.findById(id).map(this::viewFromContact)
-                .orElseThrow(ContactNotFoundException::new);
+    public ContactDto get(String id) {
+        return contactsRepository.findById(id).map(getContactDto()).orElseThrow(ContactNotFoundException::new);
+    }
+
+    private Function<Contact, ContactDto> getContactDto() {
+        return contact -> {
+            final var contactDto = new ContactDto();
+            contactDto.setId(contact.getId());
+            contactDto.setName(contact.getName());
+            emailsRepository.findByContactId(contact.getId()).forEach(email -> {
+                if (contactDto.getEmails() == null) {
+                    contactDto.setEmails(new ArrayList<>());
+                }
+                contactDto.getEmails().add(email.getAddress());
+            });
+            return contactDto;
+        };
     }
 
     @Override
     public void delete(String id) {
-        final Contact contact = contactsRepository.findById(id)
+        final var contact = contactsRepository.findById(id)
                 .orElseThrow(ContactNotFoundException::new);
         contactsRepository.delete(contact);
         emailsRepository.deleteAll(emailsRepository.findByContactId(id));

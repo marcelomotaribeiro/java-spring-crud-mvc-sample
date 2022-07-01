@@ -34,3 +34,4 @@ build/
 
 ### Local environment ###
 sonar.bat
+sonar.sh

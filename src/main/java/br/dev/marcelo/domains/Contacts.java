@@ -1,19 +1,18 @@
 package br.dev.marcelo.domains;
 
-import br.dev.marcelo.models.ContactUpdateDto;
-import br.dev.marcelo.models.ContactViewDto;
+import br.dev.marcelo.models.ContactDto;
 
 import java.util.List;
 
 public interface Contacts {
 
-    ContactViewDto post(ContactUpdateDto contactUpdateDto);
+    ContactDto post(ContactDto contactDto);
 
-    ContactViewDto put(String id, ContactUpdateDto contactUpdateDto);
+    ContactDto put(String id, ContactDto contactDto);
 
-    List<ContactViewDto> get();
+    List<ContactDto> get();
 
-    ContactViewDto get(String id);
+    ContactDto get(String id);
 
     void delete(String id);
 

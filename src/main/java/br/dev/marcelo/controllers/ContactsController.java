@@ -1,11 +1,7 @@
 package br.dev.marcelo.controllers;
 
 import br.dev.marcelo.domains.Contacts;
-import br.dev.marcelo.exceptions.ContactNotFoundException;
-import br.dev.marcelo.exceptions.EmailAlreadyInUseException;
-import br.dev.marcelo.exceptions.InvalidEmailException;
-import br.dev.marcelo.models.ContactUpdateDto;
-import br.dev.marcelo.models.ContactViewDto;
+import br.dev.marcelo.models.ContactDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,56 +26,34 @@ public class ContactsController {
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Create contact")
-    public ResponseEntity<ContactViewDto> post(@RequestBody @Valid ContactUpdateDto contactUpdateDto) {
-        try {
-            return ResponseEntity.status(HttpStatus.CREATED).body(contacts.post(contactUpdateDto));
-        } catch (EmailAlreadyInUseException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        } catch (InvalidEmailException ex) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<ContactDto> post(@RequestBody @Valid ContactDto contactDto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(contacts.post(contactDto));
     }
 
     @PutMapping(value = "{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Update contact")
-    public ResponseEntity<ContactViewDto> put(@Parameter(description = "Contact identifier") @PathVariable String id,
-                                               @RequestBody @Valid ContactUpdateDto contactUpdateDto) {
-        try {
-            return ResponseEntity.ok(contacts.put(id, contactUpdateDto));
-        } catch (EmailAlreadyInUseException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        } catch (InvalidEmailException ex) {
-            return ResponseEntity.badRequest().build();
-        } catch(ContactNotFoundException ex) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<ContactDto> put(@Parameter(description = "Contact identifier") @PathVariable String id,
+                                          @RequestBody @Valid ContactDto contactDto) {
+        return ResponseEntity.ok(contacts.put(id, contactDto));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Retrieve all contacts")
-    public ResponseEntity<List<ContactViewDto>> get() {
+    public ResponseEntity<List<ContactDto>> get() {
         return ResponseEntity.ok(contacts.get());
     }
 
     @GetMapping(value = "{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Retrieve contact by identifier")
-    public ResponseEntity<ContactViewDto> get(@Parameter(description = "Contact identifier") @PathVariable String id) {
-        try {
-            return ResponseEntity.ok(contacts.get(id));
-        } catch(ContactNotFoundException ex) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<ContactDto> get(@Parameter(description = "Contact identifier") @PathVariable String id) {
+        return ResponseEntity.ok(contacts.get(id));
     }
 
     @DeleteMapping(value = "{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Remove contact by identifier")
     public ResponseEntity<String> delete(@Parameter(description = "Contact identifier") @PathVariable String id) {
-        try {
-            contacts.delete(id);
-            return ResponseEntity.ok().build();
-        } catch(ContactNotFoundException ex) {
-            return ResponseEntity.notFound().build();
-        }
+        contacts.delete(id);
+        return ResponseEntity.ok().build();
     }
 
 }
