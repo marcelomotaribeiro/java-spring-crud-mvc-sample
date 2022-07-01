@@ -22,3 +22,5 @@ jobs:
         docker login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASSWORD}} 
         docker build . --file Dockerfile --tag ${{secrets.DOCKER_USER}}/java-spring-crud-mvc-sample:$(git rev-parse --short "$GITHUB_SHA")
         docker push ${{secrets.DOCKER_USER}}/java-spring-crud-mvc-sample:$(git rev-parse --short "$GITHUB_SHA")
+        docker build . --file Dockerfile --tag ${{secrets.DOCKER_USER}}/java-spring-crud-mvc-sample:latest
+        docker push ${{secrets.DOCKER_USER}}/java-spring-crud-mvc-sample:latest
