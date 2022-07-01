@@ -24,9 +24,9 @@ Os pacotes foram organizados da seguinte forma:
 A cada commit uma nova imagem docker será criada no repositório que pode ser acessado no link abaixo. O identificador do commit será usado como tag da imagem gerada. https://hub.docker.com/repository/docker/marcelomotaribeiro/java-spring-crud-mvc-sample
 ##### Comandos (Requer Java 11 e Docker. Usando o commit f5ac6c8, como exemplo.):
 
-`$ docker pull marcelomotaribeiro/java-spring-crud-mvc-sample:f5ac6c8`
+`$ docker pull marcelomotaribeiro/java-spring-crud-mvc-sample:09eddb9`
 
-`$ docker run -dp 8080:8080 marcelomotaribeiro/java-spring-crud-mvc-sample:f5ac6c8`
+`$ docker run -dp 8080:8080 marcelomotaribeiro/java-spring-crud-mvc-sample:09eddb9`
 
 #### Docker (local)
 ##### Comandos (Requer Java 11, Maven e Docker instalados. Devem ser executados na pasta raiz do projeto)
